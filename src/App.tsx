@@ -114,11 +114,15 @@ function App() {
   const [isPermission, setIsPermission] = useState(true);
 
   const registerShortcut = async () => {
-    await register("CommandOrControl+G", async () => {
-      const text = await getHighlightedText();
-      if (!text) return;
-      paraphraseRef.current(text);
-    });
+    try {
+      await register("CommandOrControl+G", async () => {
+        const text = await getHighlightedText();
+        if (!text) return;
+        paraphraseRef.current(text);
+      });
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   useEffect(() => {
@@ -136,6 +140,7 @@ function App() {
 
   const checkPermission = async () => {
     const isPermission = await checkIfAccessibilityIsEnabled();
+    console.log(isPermission);
     if (isPermission === "1") {
       setIsPermission(true);
     } else {
@@ -144,9 +149,8 @@ function App() {
   };
 
   useEffect(() => {
-    registerShortcut();
-
     checkPermission();
+    registerShortcut();
 
     return () => {
       unregister("CommandOrControl+G");

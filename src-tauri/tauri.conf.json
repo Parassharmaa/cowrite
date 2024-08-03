@@ -46,7 +46,8 @@
       {
         "title": "cowrite",
         "width": 400,
-        "height": 400
+        "height": 400,
+        "resizable": false
       }
     ],
     "security": {

@@ -65,6 +65,7 @@ fn main() {
             _ => {}
         })
         .system_tray(tray)
+        .setup(|app| Ok(app.set_activation_policy(tauri::ActivationPolicy::Accessory)))
         .on_system_tray_event(|app, event| match event {
             tauri::SystemTrayEvent::LeftClick { .. } => {
                 println!("system tray received a left click");
