@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/tauri";
 import { appWindow } from "@tauri-apps/api/window";
 import { register, unregister } from "@tauri-apps/api/globalShortcut";
 import { Command } from "@tauri-apps/api/shell";
+import { getVersion } from "@tauri-apps/api/app";
 
 const openAccessibilityPermission = async () => {
   const command = new Command("open", [
@@ -113,6 +114,15 @@ function App() {
 
   const [isPermission, setIsPermission] = useState(true);
 
+  const [appVersion, setAppVersion] = useState("");
+
+  const getAppVersion = async () => {
+    const version = await getVersion();
+    setAppVersion(version);
+  };
+
+  const [keyRegistered, setKeyRegistered] = useState(false);
+
   const registerShortcut = async () => {
     try {
       await register("CommandOrControl+G", async () => {
@@ -120,8 +130,9 @@ function App() {
         if (!text) return;
         paraphraseRef.current(text);
       });
+      setKeyRegistered(true);
     } catch (error) {
-      console.error(error);
+      setKeyRegistered(true);
     }
   };
 
@@ -140,7 +151,7 @@ function App() {
 
   const checkPermission = async () => {
     const isPermission = await checkIfAccessibilityIsEnabled();
-    console.log(isPermission);
+
     if (isPermission === "1") {
       setIsPermission(true);
     } else {
@@ -149,6 +160,7 @@ function App() {
   };
 
   useEffect(() => {
+    getAppVersion();
     checkPermission();
     registerShortcut();
 
@@ -163,11 +175,29 @@ function App() {
 
   return (
     <div className="container">
-      <h1>CoWrite!</h1>
+      <h2>
+        CoWrite{"  "}
+        <span
+          style={{
+            fontSize: 14,
+            fontWeight: "normal",
+          }}
+        >
+          v{appVersion}
+        </span>
+      </h2>
 
       <p>
-        Press <kbd>cmd+G </kbd>
-        to fix grammar and formatting mistakes in your text anywhere.
+        Press{" "}
+        <kbd
+          style={{
+            background: "black",
+          }}
+        >
+          cmd+g
+        </kbd>{" "}
+        {keyRegistered && isPermission ? "✅" : "❌"} to fix grammar and
+        formatting mistakes in your text anywhere.
       </p>
 
       {!isPermission && (

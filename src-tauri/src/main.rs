@@ -2,12 +2,12 @@
 
 use reqwest::Client;
 use serde_json::json;
-use tauri::{CustomMenuItem, Icon, Manager, SystemTray, SystemTrayMenu, SystemTrayMenuItem};
+use tauri::{CustomMenuItem, Manager, SystemTray, SystemTrayMenu};
 use tokio;
 
 async fn paraphrase(
     window: tauri::Window,
-    app_handle: tauri::AppHandle,
+    _app_handle: tauri::AppHandle,
     text: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // make http request on https://src-worker.sleek.workers.dev/paraphrase get the streaming text
@@ -44,14 +44,9 @@ fn paraphrase_command(window: tauri::Window, app_handle: tauri::AppHandle, text:
 }
 
 fn main() {
-    let hide = CustomMenuItem::new("toggle_visibility".to_string(), "Hide");
-
     let quit = CustomMenuItem::new("quit".to_string(), "Quit CoWrite");
 
-    let tray_menu = SystemTrayMenu::new()
-        .add_item(quit)
-        .add_native_item(SystemTrayMenuItem::Separator)
-        .add_item(hide);
+    let tray_menu = SystemTrayMenu::new().add_item(quit);
 
     let tray = SystemTray::new().with_menu(tray_menu);
 
@@ -61,38 +56,28 @@ fn main() {
                 event.window().hide().unwrap();
                 api.prevent_close();
             }
-
             _ => {}
         })
         .system_tray(tray)
         .setup(|app| Ok(app.set_activation_policy(tauri::ActivationPolicy::Accessory)))
         .on_system_tray_event(|app, event| match event {
             tauri::SystemTrayEvent::LeftClick { .. } => {
-                println!("system tray received a left click");
+                let window = app.get_window("main").unwrap();
+                if window.is_visible().unwrap() {
+                    window.hide().unwrap();
+                } else {
+                    window.show().unwrap();
+                }
             }
             tauri::SystemTrayEvent::RightClick { .. } => {
                 println!("system tray received a right click");
             }
-            tauri::SystemTrayEvent::MenuItemClick { id, .. } => {
-                let item_handle = app.tray_handle().get_item(&id);
-
-                match id.as_str() {
-                    "quit" => {
-                        std::process::exit(0);
-                    }
-                    "toggle_visibility" => {
-                        let window = app.get_window("main").unwrap();
-                        if window.is_visible().unwrap() {
-                            window.hide().unwrap();
-                            item_handle.set_title("Show").unwrap();
-                        } else {
-                            window.show().unwrap();
-                            item_handle.set_title("Hide").unwrap();
-                        }
-                    }
-                    _ => {}
+            tauri::SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
+                "quit" => {
+                    std::process::exit(0);
                 }
-            }
+                _ => {}
+            },
             _ => {}
         })
         .invoke_handler(tauri::generate_handler![paraphrase_command])
