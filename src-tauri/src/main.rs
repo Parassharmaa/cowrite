@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use get_selected_text;
+use macos_accessibility_client;
 use reqwest::Client;
 use serde_json::json;
 use tauri::{CustomMenuItem, Manager, SystemTray, SystemTrayMenu};
@@ -31,15 +33,38 @@ async fn paraphrase(
 }
 
 #[tauri::command]
-fn paraphrase_command(window: tauri::Window, app_handle: tauri::AppHandle, text: &str) -> String {
-    println!("{}", text);
+fn log_fe_command(log: &str) -> String {
+    println!("FE: {}", log);
+    String::from("done")
+}
+
+#[tauri::command]
+#[cfg(target_os = "macos")]
+fn query_accessibility_permissions_command() -> bool {
+    let trusted = macos_accessibility_client::accessibility::application_is_trusted();
+    return trusted;
+}
+
+#[tauri::command]
+#[cfg(target_os = "macos")]
+fn prompt_accessibility_permissions_command() -> bool {
+    let trusted = macos_accessibility_client::accessibility::application_is_trusted_with_prompt();
+
+    return trusted;
+}
+
+#[tauri::command]
+fn paraphrase_command(window: tauri::Window, app_handle: tauri::AppHandle) -> String {
+    let text = get_selected_text::get_selected_text().unwrap_or(String::from(""));
+
+    println!("Selected Text: {}", text);
 
     if text.is_empty() {
         return String::from("");
     }
 
     let rt = tokio::runtime::Runtime::new().unwrap();
-    rt.block_on(paraphrase(window, app_handle, text)).unwrap();
+    rt.block_on(paraphrase(window, app_handle, &text)).unwrap();
     String::from("done")
 }
 
@@ -59,7 +84,11 @@ fn main() {
             _ => {}
         })
         .system_tray(tray)
-        .setup(|app| Ok(app.set_activation_policy(tauri::ActivationPolicy::Accessory)))
+        .setup(|app| {
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
+            Ok(())
+        })
         .on_system_tray_event(|app, event| match event {
             tauri::SystemTrayEvent::LeftClick { .. } => {
                 let window = app.get_window("main").unwrap();
@@ -80,7 +109,12 @@ fn main() {
             },
             _ => {}
         })
-        .invoke_handler(tauri::generate_handler![paraphrase_command])
+        .invoke_handler(tauri::generate_handler![
+            paraphrase_command,
+            log_fe_command,
+            prompt_accessibility_permissions_command,
+            query_accessibility_permissions_command
+        ])
         .build(tauri::generate_context!())
         .expect("Error while building tauri application")
         .run(|__app_handle, event| match event {

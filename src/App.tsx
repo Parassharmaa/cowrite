@@ -6,71 +6,15 @@ import { Command } from "@tauri-apps/api/shell";
 import { getVersion } from "@tauri-apps/api/app";
 
 const openAccessibilityPermission = async () => {
-  const command = new Command("open", [
-    "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility",
-  ]);
+  return invoke("prompt_accessibility_permissions_command");
+};
 
-  await command.execute();
+const log = (text: string) => {
+  invoke("log_fe_command", { log: text });
 };
 
 const checkIfAccessibilityIsEnabled = async () => {
-  const script = `tell application "System Events"
-        try
-            key code 123
-            return "1"
-        on error
-            return "0"
-        end try
-    end tell`;
-
-  const command = new Command("osascript", ["-e", script]);
-
-  command.on("error", (error) => {
-    console.error("error", error);
-  });
-
-  command.on("close", (data) => {
-    console.log(`Command exited with code ${data.code}`);
-  });
-
-  command.stderr.on("data", (data) => {
-    console.log("Error", data);
-  });
-
-  const child = await command.execute();
-
-  return child.stdout.trim();
-};
-
-const getHighlightedText = async () => {
-  const script = `
-    tell application "System Events"
-        keystroke "c" using {command down}
-    end tell
-
-    delay 0.2
-
-    set highlightedText to the clipboard
-    return highlightedText
-  `;
-
-  const command = new Command("osascript", ["-e", script]);
-
-  command.on("error", (error) => {
-    console.error("error", error);
-  });
-
-  command.on("close", (data) => {
-    console.log(`Command exited with code ${data.code}`);
-  });
-
-  command.stderr.on("data", (data) => {
-    console.log("Error", data);
-  });
-
-  const child = await command.execute();
-
-  return child.stdout.trim();
+  return invoke("query_accessibility_permissions_command");
 };
 
 const writeText = async (text: string) => {
@@ -91,11 +35,15 @@ const writeText = async (text: string) => {
   });
 
   command.on("close", (error) => {
-    console.log(`Command exited with code ${error.code}`);
+    log(`Command exited with code ${error.code}`);
   });
 
   command.stderr.on("data", (data) => {
-    console.log("Error", data);
+    log(`Error ${data}`);
+  });
+
+  command.stdout.on("data", (data) => {
+    log(`stdout ${data}`);
   });
 
   await command.execute();
@@ -125,10 +73,8 @@ function App() {
 
   const registerShortcut = async () => {
     try {
-      await register("CommandOrControl+G", async () => {
-        const text = await getHighlightedText();
-        if (!text) return;
-        paraphraseRef.current(text);
+      await register("CommandOrControl+G", () => {
+        invoke("paraphrase_command");
       });
       setKeyRegistered(true);
     } catch (error) {
@@ -150,13 +96,9 @@ function App() {
   }, []);
 
   const checkPermission = async () => {
-    const isPermission = await checkIfAccessibilityIsEnabled();
+    const isPermission = (await checkIfAccessibilityIsEnabled()) as boolean;
 
-    if (isPermission === "1") {
-      setIsPermission(true);
-    } else {
-      setIsPermission(false);
-    }
+    setIsPermission(isPermission);
   };
 
   useEffect(() => {
@@ -174,50 +116,49 @@ function App() {
   }, [paraphrase]);
 
   return (
-    <div className="container">
-      <h2>
-        CoWrite{"  "}
-        <span
-          style={{
-            fontSize: 14,
-            fontWeight: "normal",
-          }}
-        >
-          v{appVersion}
-        </span>
-      </h2>
+    <div>
+      <div className="rounded-xl text-gray-300 bg-slate-700 h-[100vh]">
+        <div className="h-8 w-full" data-tauri-drag-region />
+        <div className="p-4 flex flex-col items-center gap-4 justify-center">
+          <h2 className="text-3xl">
+            CoWrite{"  "}
+            <span
+              style={{
+                fontSize: 14,
+                fontWeight: "normal",
+              }}
+            >
+              v{appVersion}
+            </span>
+          </h2>
 
-      <p>
-        Press{" "}
-        <kbd
-          style={{
-            background: "black",
-          }}
-        >
-          cmd+g
-        </kbd>{" "}
-        {keyRegistered && isPermission ? "✅" : "❌"} to fix grammar and
-        formatting mistakes in your text anywhere.
-      </p>
-
-      {!isPermission && (
-        <div>
-          <button
-            onClick={async () => {
-              await openAccessibilityPermission();
-            }}
-          >
-            Grant Permission
-          </button>
-          <p
-            style={{
-              fontSize: 12,
-            }}
-          >
-            Please Re-open the app after granting the permission
+          <p>
+            Press <kbd className="bg-slate-900 text-white px-2 py-1">cmd+g</kbd>{" "}
+            {keyRegistered && isPermission ? "✅" : "❌"} to fix grammar and
+            formatting mistakes in your text anywhere.
           </p>
+
+          {!isPermission && (
+            <div className="flex flex-col gap-2">
+              <button
+                className="bg-slate-900 rounded-2xl text-white px-4 py-2 shadow-md"
+                onClick={async () => {
+                  openAccessibilityPermission();
+                }}
+              >
+                Grant Permission
+              </button>
+              <p
+                style={{
+                  fontSize: 12,
+                }}
+              >
+                Please Re-open the app after granting the permission
+              </p>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
