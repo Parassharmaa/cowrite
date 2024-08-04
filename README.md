@@ -2,7 +2,7 @@
 
 AI based writing assistant
 
-[Download here](https://github.com/CoWrite-App/CoWrite/releases)
+[Download here](https://github.com/Parassharmaa/cowrite/releases)
 
 
 ## Demo
