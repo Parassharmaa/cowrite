@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use clipboard_rs::{Clipboard, ClipboardContext};
 use get_selected_text;
 use macos_accessibility_client;
 use reqwest::Client;
@@ -11,15 +12,15 @@ async fn paraphrase(
     window: tauri::Window,
     _app_handle: tauri::AppHandle,
     text: &str,
+    // option action
+    action: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    // make http request on https://src-worker.sleek.workers.dev/paraphrase get the streaming text
-
     let client = Client::new();
 
     let response = client
         .post("https://src-worker.sleek.workers.dev/paraphrase")
         .header("Content-Type", "application/json")
-        .body(json!({ "text": text }).to_string())
+        .body(json!({ "text": text, "action": action }).to_string())
         .send()
         .await?;
 
@@ -64,8 +65,44 @@ fn paraphrase_command(window: tauri::Window, app_handle: tauri::AppHandle) -> St
     }
 
     let rt = tokio::runtime::Runtime::new().unwrap();
-    rt.block_on(paraphrase(window, app_handle, &text)).unwrap();
+    rt.block_on(paraphrase(window, app_handle, &text, "default"))
+        .unwrap();
+
     String::from("done")
+}
+
+#[tauri::command]
+fn paraphrase_action_command(
+    window: tauri::Window,
+    app_handle: tauri::AppHandle,
+    action: String,
+) -> String {
+    // get text from clipboard
+
+    let ctx = ClipboardContext::new().unwrap();
+
+    let text = ctx.get_text().unwrap_or(String::from(""));
+
+    println!("Selected Text: {}", text);
+
+    if text.is_empty() {
+        return String::from("");
+    }
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(paraphrase(window, app_handle, &text, &action))
+        .unwrap();
+
+    String::from("done")
+}
+
+#[tauri::command]
+fn copy_selected_to_clipboard_command() -> String {
+    let text = get_selected_text::get_selected_text().unwrap_or(String::from(""));
+    let ctx: ClipboardContext = ClipboardContext::new().unwrap();
+    ctx.set_text(text.to_owned()).unwrap();
+
+    String::from(text)
 }
 
 fn main() {
@@ -113,7 +150,9 @@ fn main() {
             paraphrase_command,
             log_fe_command,
             prompt_accessibility_permissions_command,
-            query_accessibility_permissions_command
+            query_accessibility_permissions_command,
+            copy_selected_to_clipboard_command,
+            paraphrase_action_command
         ])
         .build(tauri::generate_context!())
         .expect("Error while building tauri application")

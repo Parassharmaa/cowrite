@@ -11,7 +11,7 @@ edition = "2021"
 tauri-build = { version = "1.5.3", features = [] }
 
 [dependencies]
-tauri = { version = "1.6.0", features = [ "window-start-dragging",
+tauri = { version = "1.6.0", features = [ "window-all",
     "clipboard-all",
     "global-shortcut-all",
     "macos-private-api",
@@ -24,6 +24,7 @@ reqwest = "0.12.5"
 tokio = "1.39.2"
 macos-accessibility-client = "=0.0.1"
 get-selected-text = "0.1.6"
+clipboard-rs = "0.1.11"
 
 [features]
 # This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!

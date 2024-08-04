@@ -6,12 +6,13 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "cowrite",
-    "version": "0.0.3"
+    "productName": "CoWrite",
+    "version": "0.0.4"
   },
   "tauri": {
     "allowlist": {
       "all": false,
+
       "shell": {
         "all": true,
         "open": true,
@@ -34,6 +35,7 @@
         ]
       },
       "window": {
+        "all": true,
         "startDragging": true
       },
       "globalShortcut": {
@@ -58,6 +60,21 @@
         "hiddenTitle": true,
         "titleBarStyle": "Overlay",
         "acceptFirstMouse": true
+      },
+      {
+        "label": "update-phrase-panel",
+        "title": "CoWrite",
+        "width": 400,
+        "height": 200,
+        "resizable": false,
+        "alwaysOnTop": true,
+        "center": true,
+        "transparent": true,
+        "decorations": false,
+        "hiddenTitle": true,
+        "titleBarStyle": "Transparent",
+        "acceptFirstMouse": true,
+        "visible": false
       }
     ],
     "macOSPrivateApi": true,
