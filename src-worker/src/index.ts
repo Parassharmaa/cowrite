@@ -7,7 +7,6 @@ export default {
 	async fetch(request, env, ctx): Promise<Response> {
 		const url = new URL(request.url);
 
-		console.log(url.pathname);
 		if (url.pathname === '/paraphrase' && request.method === 'POST') {
 			let { readable, writable } = new TransformStream();
 			let writer = writable.getWriter();
@@ -40,12 +39,11 @@ export default {
 			}
 
 			if (action === 'custom') {
-				systemPrompt = `Rephrase the following text using the custom instruction i.e: ${custom}. ${basePrompt}`;
+				systemPrompt = `Rephrase the following text using the custom instruction. Custom instruction: ${custom}. ${basePrompt}`;
 			}
 
 			const client = new OpenAI({
-				apiKey: env.GROQ_API_KEY,
-				baseURL: 'https://api.groq.com/openai/v1',
+				apiKey: env.OPENAI_API_KEY,
 			});
 			if (!text) {
 				return new Response('No text provided', { status: 400 });
@@ -53,27 +51,29 @@ export default {
 
 			const prompt = [
 				{
-					role: 'system',
+					role: 'assistant',
 					content: systemPrompt,
 				},
 				{ role: 'user', content: `${text}` },
-			];
+			] as ChatCompletionMessageParam[];
 
 			console.log(prompt);
 
 			ctx.waitUntil(
 				(async () => {
 					const stream = await client.chat.completions.create({
-						model: 'llama-3.1-70b-versatile',
-						temperature: 0.2,
-						messages: prompt as ChatCompletionMessageParam[],
+						model: 'gpt-4o',
+						temperature: 0,
+						messages: prompt,
 						stream: true,
 					});
 
 					// loop over the data as it is streamed and write to the writeable
 					for await (const part of stream) {
+						console.log(part.choices[0]?.delta?.content);
 						writer.write(textEncoder.encode(part.choices[0]?.delta?.content || ''));
 					}
+					writer.close();
 				})()
 			);
 

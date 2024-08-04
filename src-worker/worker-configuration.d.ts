@@ -2,4 +2,5 @@
 // After adding bindings to `wrangler.toml`, regenerate this interface via `npm run cf-typegen`
 interface Env {
 	GROQ_API_KEY: string;
+	OPENAI_API_KEY: string;
 }
