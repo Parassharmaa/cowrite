@@ -6,7 +6,6 @@ use macos_accessibility_client;
 use reqwest::Client;
 use serde_json::json;
 use tauri::{CustomMenuItem, Manager, SystemTray, SystemTrayMenu};
-use tokio;
 
 async fn paraphrase(
     window: tauri::Window,
@@ -55,7 +54,7 @@ fn prompt_accessibility_permissions_command() -> bool {
 }
 
 #[tauri::command]
-fn paraphrase_command(window: tauri::Window, app_handle: tauri::AppHandle) -> String {
+async fn paraphrase_command(window: tauri::Window, app_handle: tauri::AppHandle) -> String {
     let text = get_selected_text::get_selected_text().unwrap_or(String::from(""));
 
     println!("Selected Text: {}", text);
@@ -64,15 +63,15 @@ fn paraphrase_command(window: tauri::Window, app_handle: tauri::AppHandle) -> St
         return String::from("");
     }
 
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    rt.block_on(paraphrase(window, app_handle, &text, "default"))
+    paraphrase(window, app_handle, &text, "default")
+        .await
         .unwrap();
 
     String::from("done")
 }
 
 #[tauri::command]
-fn paraphrase_action_command(
+async fn paraphrase_action_command(
     window: tauri::Window,
     app_handle: tauri::AppHandle,
     action: String,
@@ -89,8 +88,8 @@ fn paraphrase_action_command(
         return String::from("");
     }
 
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    rt.block_on(paraphrase(window, app_handle, &text, &action))
+    paraphrase(window, app_handle, &text, &action)
+        .await
         .unwrap();
 
     String::from("done")

@@ -70,10 +70,10 @@ const RephraseActionPanel = () => {
             type={type}
             isSelected={index === selectedIndex}
             onClick={() => {
-              hideWindow();
               invoke("paraphrase_action_command", {
                 action: type,
               });
+              hideWindow();
             }}
           />
         ))}
