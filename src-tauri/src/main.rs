@@ -16,6 +16,10 @@ async fn paraphrase(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new();
 
+    if action.is_empty() != true {
+        window.emit("paraphrase-action-loading-start", action)?;
+    }
+
     let response = client
         .post("https://src-worker.sleek.workers.dev/paraphrase")
         .header("Content-Type", "application/json")
@@ -28,6 +32,10 @@ async fn paraphrase(
     println!("{}", phrase);
 
     window.emit("paraphrased-response", phrase)?;
+
+    if action.is_empty() != true {
+        window.emit("paraphrase-action-loading-stop", action)?;
+    }
 
     Ok(())
 }
