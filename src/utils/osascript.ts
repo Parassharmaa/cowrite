@@ -59,3 +59,34 @@ export const writeText = async (text: string) => {
 
   await command.execute();
 };
+
+export const selectCurrentParagraph = async () => {
+  // using opt + shift + up arrow
+  const script = `
+    tell application "System Events"
+      key code 126 using {option down, shift down}
+    end tell
+  `;
+
+  const command = new Command("osascript", ["-e", script]);
+
+  command.on("error", (error) => {
+    console.error("error", error);
+  });
+
+  command.on("close", (error) => {
+    log(`Command exited with code ${error.code}`);
+  });
+
+  command.stderr.on("data", (data) => {
+    log(`Error ${data}`);
+  });
+
+  command.stdout.on("data", (data) => {
+    log(`stdout ${data}`);
+  });
+
+  await command.execute();
+
+  return true;
+};

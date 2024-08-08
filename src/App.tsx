@@ -6,13 +6,15 @@ import { register, unregister } from "@tauri-apps/api/globalShortcut";
 import "./App.css";
 import { log } from "./utils/log";
 import RephraseActionPanel from "./components/RephraseActionPanel";
-import { writeText } from "./utils/osascript";
+import { selectCurrentParagraph, writeText } from "./utils/osascript";
 import MainPanel from "./components/MainPanel";
 
 function App() {
   const registerShortcut = async () => {
     try {
-      await register("CommandOrControl+G", () => {
+      await register("CommandOrControl+G", async () => {
+        await selectCurrentParagraph();
+        await new Promise((resolve) => setTimeout(resolve, 200));
         invoke("paraphrase_command");
       });
 
